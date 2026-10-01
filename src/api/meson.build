@@ -63,7 +63,7 @@ weserv_headers = files(
 weserv_lib = library('weserv',
     weserv_sources,
     weserv_headers,
-    dependencies: vips_dep,
+    dependencies: weserv_deps,
     include_directories: weserv_includedir,
     version: library_version,
     gnu_symbol_visibility: 'hidden',
@@ -72,12 +72,27 @@ weserv_lib = library('weserv',
 
 weserv_dep = declare_dependency(
     link_with: weserv_lib,
-    dependencies: vips_dep,
+    dependencies: weserv_deps,
     include_directories: weserv_includedir,
 )
+
+weserv_variables = []
+weserv_private_libs = []
+
+if cpp.get_argument_syntax() != 'msvc'
+    # TODO(kleisauke): Switch to `version` once we require C++20
+    # https://stackoverflow.com/a/31658120
+    header = cpp.has_header('version') ? 'version' : 'ciso646'
+    is_libcxx = cpp.has_header_symbol(header, '_LIBCPP_VERSION')
+    weserv_variables += 'weserv_cxx_runtime=@0@'.format(is_libcxx ? '-lc++' : '-lstdc++')
+    weserv_private_libs += '${weserv_cxx_runtime}'
+endif
 
 pkg.generate(
     weserv_lib,
     name: 'weserv',
     description: 'API library of the Nginx weserv module',
+    libraries_private: weserv_private_libs,
+    variables: weserv_variables,
+    uninstalled_variables: weserv_variables,
 )

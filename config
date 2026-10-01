@@ -7,6 +7,15 @@ END
     exit 1
 fi
 
+if ! pkg-config --exists weserv; then
+cat << END
+
+$0: error: Weserv module requires pkg-config and a valid weserv.pc.
+
+END
+    exit 1
+fi
+
 if [ $HTTP_SSL != YES ]; then
 cat << END
 
@@ -14,6 +23,9 @@ $0: warning: NGINX configured without --with-http_ssl_module, SSL support is dis
 
 END
 fi
+
+API_CXX_RUNTIME="$(pkg-config --variable=weserv_cxx_runtime weserv)"
+API_LIBS="$(pkg-config --libs weserv)"
 
 ngx_addon_name=ngx_weserv_module
 ngx_module_type=HTTP_AUX_FILTER
@@ -45,7 +57,7 @@ ngx_module_srcs=" \
   $ngx_addon_dir/src/nginx/uri_parser.cpp \
   $ngx_addon_dir/src/nginx/util.cpp \
 "
-ngx_module_libs="-lstdc++ -lweserv"
+ngx_module_libs="$API_CXX_RUNTIME $API_LIBS"
 
 . auto/module
 
